@@ -1,0 +1,6 @@
+﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+	<s:Boolean x:Key="/Default/RunConfigs/Config/=B3FB0273DE46E24A99758D8039EEF997/@KeyIndexDefined">True</s:Boolean>
+	<s:String x:Key="/Default/RunConfigs/Config/=B3FB0273DE46E24A99758D8039EEF997/Type/@EntryValue">project</s:String>
+	<s:String x:Key="/Default/RunConfigs/Config/=B3FB0273DE46E24A99758D8039EEF997/Name/@EntryValue">NESEmulator</s:String>
+	<s:String x:Key="/Default/RunConfigs/Config/=B3FB0273DE46E24A99758D8039EEF997/ProjectGuid/@EntryValue">5DBBB5822E99A24DB87774E3F0924ACB</s:String>
+	<s:String x:Key="/Default/RunConfigs/Active/@EntryValue">B3FB0273DE46E24A99758D8039EEF997</s:String></wpf:ResourceDictionary>
