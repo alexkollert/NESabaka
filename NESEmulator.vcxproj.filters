@@ -18,15 +18,21 @@
     <ClCompile Include="src\NESEmulator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\CPU.cpp">
+    <ClCompile Include="src\CPU6502.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MainBus.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="inc\CPU.hpp">
+    <ClInclude Include="inc\CPU6502.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="inc\Disassembler.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\MainBus.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
