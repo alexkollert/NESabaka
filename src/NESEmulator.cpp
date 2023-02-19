@@ -1,12 +1,8 @@
 #include <NESEmulator.hpp>
 #include <MainBus.hpp>
 #include <sstream>
-
-
-void UnimplementedInstruction()
-{
-	throw std::exception("Unimplemented or unknown instruction");
-}
+#include <QtWidgets/QApplication>
+#include <Qt6502Debug.h>
 
 char* getCmdOption(char** begin, char** end, const std::string& option)
 {
@@ -39,7 +35,7 @@ void NESEmulator::run(std::string rom_path)
 
 
 
-int main()
+int main(int argc, char* argv[])
 {
     MainBus nes;
 
@@ -76,5 +72,20 @@ int main()
 	nes.ram[0xFFFC] = 0x00;
 	nes.ram[0xFFFD] = 0x80;
 
+	QApplication a(argc, argv);
+	Qt6502Debug gui(nes.ram);
+
+	QObject::connect(&nes.cpu6502, &CPU6502::cpuChanged, &gui, &Qt6502Debug::cpuChanged);
+	QObject::connect(&gui, &Qt6502Debug::spacePressed , &nes.cpu6502, &CPU6502::spacePressed);
+
+	gui.show();
+
+	auto p = nes.cpu6502.disassemble(0x8000);
+
+	gui.setRAM(0x0000, 0x0030);
+	gui.setPrg(p);
+
 	nes.cpu6502.reset();
+
+	return a.exec();
 }

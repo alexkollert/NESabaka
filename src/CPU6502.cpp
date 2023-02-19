@@ -1,5 +1,7 @@
 #include "CPU6502.hpp"
 #include "MainBus.hpp"
+#include <sstream>
+#include <iomanip>
 
 void CPU6502::reset()
 {
@@ -21,6 +23,8 @@ void CPU6502::reset()
 	cycles = 0;
 
 	cycles = 8;
+
+	emit cpuChanged(pc, sp, a, x, y);
 }
 
 void CPU6502::clock()
@@ -40,12 +44,28 @@ void CPU6502::clock()
 	cycles--;
 }
 
+void CPU6502::spacePressed()
+{
+	stepInstruction();
+}
+
+void CPU6502::stepInstruction()
+{
+	while (cycles != 0) clock();
+	clock();
+	emit cpuChanged(pc, sp, a, x, y);
+}
+
 void CPU6502::nmi()
 {
 }
 
 void CPU6502::irq()
 {
+	if (p.i  == 0)
+	{
+
+	}
 }
 
 uint8_t CPU6502::fetch()
@@ -63,6 +83,23 @@ void CPU6502::loadBinary(const std::string& filename)
 void CPU6502::connectMainbus(MainBus* bus)
 {
 	this->bus = bus;
+}
+
+std::vector<std::pair<uint16_t, std::string>> CPU6502::disassemble(uint16_t address)
+{
+	std::vector<std::pair<uint16_t, std::string>> result;
+	pc = address;
+	for (int i = 0; i < 20; i++)
+	{
+		address = pc;
+		std::string tmp;
+		uint8_t opcode = bus->ram[pc++];
+		tmp = instructions[opcode].name;
+		(this->*instructions[opcode].addrmode)();
+		tmp += " " + disassembled;
+		result.push_back(std::pair(address, tmp));
+	}
+	return result;
 }
 
 uint8_t CPU6502::read(uint16_t address)
@@ -109,11 +146,15 @@ uint8_t CPU6502::ASL()
 
 uint8_t CPU6502::BCC()
 {
-
 	if (p.c == 0)
 	{
-		pc += addr_rel;
-		return 1;
+		cycles++;
+		addr_abs = pc + (int8_t)addr_rel;
+		
+		if ((addr_abs & 0xFF00) != (pc & 0xFF00)) //page crossed?
+			cycles++;
+
+		pc = addr_abs;
 	}
 	return 0;
 }
@@ -122,8 +163,13 @@ uint8_t CPU6502::BCS()
 {
 	if (p.c)
 	{
-		pc += addr_rel;
-		return 1;
+		cycles++;
+		addr_abs = pc + (int8_t)addr_rel;
+
+		if ((addr_abs & 0xFF00) != (pc & 0xFF00)) //page crossed?
+			cycles++;
+
+		pc = addr_abs;
 	}
 	return 0;
 }
@@ -132,8 +178,13 @@ uint8_t CPU6502::BEQ()
 {
 	if (p.z)
 	{
-		pc += addr_rel;
-		return 1;
+		cycles++;
+		addr_abs = pc + (int8_t)addr_rel;
+
+		if ((addr_abs & 0xFF00) != (pc & 0xFF00)) //page crossed?
+			cycles++;
+
+		pc = addr_abs;
 	}
 	return 0;
 }
@@ -152,8 +203,13 @@ uint8_t CPU6502::BMI()
 {
 	if (p.s)
 	{
-		pc += addr_rel;
-		return 1;
+		cycles++;
+		addr_abs = pc + (int8_t)addr_rel;
+
+		if ((addr_abs & 0xFF00) != (pc & 0xFF00)) //page crossed?
+			cycles++;
+
+		pc = addr_abs;
 	}
 	return 0;
 }
@@ -162,8 +218,13 @@ uint8_t CPU6502::BNE()
 {
 	if (p.z == 0)
 	{
-		pc += addr_rel;
-		return 1;
+		cycles++;
+		addr_abs = pc + (int8_t)addr_rel;
+
+		if ((addr_abs & 0xFF00) != (pc & 0xFF00)) //page crossed?
+			cycles++;
+
+		pc = addr_abs;
 	}
 	return 0;
 }
@@ -172,14 +233,20 @@ uint8_t CPU6502::BPL()
 {
 	if (p.s == 0)
 	{
-		pc += addr_rel;
-		return 1;
+		cycles++;
+		addr_abs = pc + (int8_t)addr_rel;
+
+		if ((addr_abs & 0xFF00) != (pc & 0xFF00)) //page crossed?
+			cycles++;
+
+		pc = addr_abs;
 	}
 	return 0;
 }
 
 uint8_t CPU6502::BRK()
 {
+
 	return uint8_t();
 }
 
@@ -187,8 +254,13 @@ uint8_t CPU6502::BVC()
 {
 	if (p.v == 0)
 	{
-		pc += addr_rel;
-		return 1;
+		cycles++;
+		addr_abs = pc + (int8_t)addr_rel;
+
+		if ((addr_abs & 0xFF00) != (pc & 0xFF00)) //page crossed?
+			cycles++;
+
+		pc = addr_abs;
 	}
 	return 0;
 }
@@ -197,8 +269,13 @@ uint8_t CPU6502::BVS()
 {
 	if (p.v)
 	{
-		pc += addr_rel;
-		return 1;
+		cycles++;
+		addr_abs = pc + (int8_t)addr_rel;
+
+		if ((addr_abs & 0xFF00) != (pc & 0xFF00)) //page crossed?
+			cycles++;
+
+		pc = addr_abs;
 	}
 	return 0;
 }
@@ -389,107 +466,188 @@ uint8_t CPU6502::ORA()
 
 uint8_t CPU6502::PHA()
 {
-	return uint8_t();
+	uint16_t address = --sp | 0x0100;
+	write(address, a);
+	return 0;
 }
 
 uint8_t CPU6502::PHP()
 {
-	return uint8_t();
+	uint8_t statusRegister;
+	memcpy(&statusRegister, &p, 1);
+	uint16_t tmp = --sp | 0x0100;
+	write(tmp, statusRegister);
+	return 0;
 }
 
 uint8_t CPU6502::PLA()
 {
-	return uint8_t();
+	uint16_t address = sp++ | 0x0100;
+	a = read(address);
+	p.z = a == 0;
+	p.s = a & 0x80;
+	return 0;
 }
 
 uint8_t CPU6502::PLP()
 {
-	return uint8_t();
+	uint16_t address = sp++ | 0x0100;
+	uint8_t statusRegister = read(address);
+	memcpy(&p, &statusRegister, 1);
+	return 0;
 }
 
 uint8_t CPU6502::ROL()
 {
-	return uint8_t();
+	fetch();
+	uint16_t tmp = (fetched << 1) | p.c;
+
+	if (instructions[opcode].addrmode == &CPU6502::IMP)
+		a = tmp;
+	else
+		write(addr_abs, tmp);
+
+	p.z = a == 0;
+	p.s = tmp & 0x80;
+	p.c = tmp & 0x0100;
+
+	return 0;
 }
 
 uint8_t CPU6502::ROR()
 {
-	return uint8_t();
+	fetch();
+	uint8_t newCarry = fetched & 1;
+	uint16_t tmp = (fetched >> 1) | (p.c << 7);
+
+	if (instructions[opcode].addrmode == &CPU6502::IMP)
+		a = tmp;
+	else
+		write(addr_abs, tmp);
+
+	p.z = a == 0;
+	p.s = tmp & 0x80;
+	p.c = newCarry;
+
+	return 0;
 }
 
 uint8_t CPU6502::RTI()
 {
-	return uint8_t();
+	uint16_t address = sp++ | 0x0100;
+	uint8_t statusRegister = read(address);
+	memcpy(&p, &statusRegister, 1);
+
+	address = sp++ | 0x0100;
+	pc = read(address);
+
+	return 0;
 }
 
 uint8_t CPU6502::RTS()
 {
-	return uint8_t();
+	uint16_t address = sp++ | 0x0100;
+	pc = read(address);
+	return 0;
 }
 
 uint8_t CPU6502::SBC()
 {
-	return uint8_t();
+	fetch();
+	uint16_t tmp = fetched ^ 0xFF;
+	uint16_t res = (uint16_t)a + tmp + (uint16_t)1 + (uint16_t)p.c;
+
+	p.c = res & 0x100 ? 0 : 1;
+	p.z = a == 0;
+	p.v = (((uint16_t)a ^ res) & (~((uint16_t)a ^ (uint16_t)fetched)) & 0x0080);
+	p.s = res & 0x80;
+	a = res;
+	return 1;
 }
 
 uint8_t CPU6502::SEC()
 {
-	return uint8_t();
+	p.c = 1;
+	return 0;
 }
 
 uint8_t CPU6502::SED()
 {
-	return uint8_t();
+	p.d = 1;
+	return 0;
 }
 
 uint8_t CPU6502::SEI()
 {
-	return uint8_t();
+	p.i = 1;
+	return 0;
 }
 
 uint8_t CPU6502::STA()
 {
-	return uint8_t();
+	fetch();
+	write(addr_abs, a);
+	return 0;
 }
 
 uint8_t CPU6502::STX()
 {
-	return uint8_t();
+	fetch();
+	write(addr_abs, x);
+	return 0;
 }
 
 uint8_t CPU6502::STY()
 {
-	return uint8_t();
+	fetch();
+	write(addr_abs, y);
+	return 0;
 }
 
 uint8_t CPU6502::TAX()
 {
-	return uint8_t();
+	x = a;
+	p.z = x == 0;
+	p.s = x & 0x80;
+	return 0;
 }
 
 uint8_t CPU6502::TAY()
 {
-	return uint8_t();
+	y = a;
+	p.z = y == 0;
+	p.s = y & 0x80;
+	return 0;
 }
 
 uint8_t CPU6502::TSX()
 {
-	return uint8_t();
+	x = sp;
+	p.z = x == 0;
+	p.s = x & 0x80;
+	return 0;
 }
 
 uint8_t CPU6502::TXA()
 {
-	return uint8_t();
+	a = x;
+	p.z = a == 0;
+	p.s = a & 0x80;
+	return 0;
 }
 
 uint8_t CPU6502::TXS()
 {
-	return uint8_t();
+	sp = x;
+	return 0;
 }
 
 uint8_t CPU6502::TYA()
 {
-	return uint8_t();
+	a = y;
+	p.z = a == 0;
+	p.s = a & 0x80;
+	return 0;
 }
 
 uint8_t CPU6502::XXX()
@@ -499,6 +657,10 @@ uint8_t CPU6502::XXX()
 
 uint8_t CPU6502::IMP()
 {
+#ifdef _DEBUG
+	disassembled = "";
+#endif
+
 	fetched = a;
 	return 0;
 }
@@ -506,32 +668,58 @@ uint8_t CPU6502::IMP()
 uint8_t CPU6502::IMM()
 {
 	addr_abs = pc++;
+#ifdef _DEBUG
+	std::stringstream stream;
+	stream << "#" << std::setw(2) << std::setfill('0') << std::hex << std::to_string(read(addr_abs));
+	disassembled = stream.str();
+#endif
 	return 0;
 }
 
 uint8_t CPU6502::ZP0()
 {
 	addr_abs = read(pc++);
+#ifdef _DEBUG
+	std::stringstream stream;
+	stream << "$" << std::setw(2) << std::setfill('0') << std::hex << addr_abs;
+	disassembled = stream.str();
+#endif
 	return 0;
 }
 
 uint8_t CPU6502::ZPX()
 {
+#ifdef _DEBUG
+	std::stringstream stream;
+	stream << "$" << std::setw(2) << std::setfill('0') << std::hex << read(pc) << ",X";
+	disassembled = stream.str();
+#endif
 	addr_abs = read(pc++) + x;
 	return 0;
 }
 
 uint8_t CPU6502::ZPY()
 {
+#ifdef _DEBUG
+	std::stringstream stream;
+	stream << "$" << std::setw(2) << std::setfill('0') << std::hex << read(pc) << ",Y";
+	disassembled = stream.str();
+#endif
 	addr_abs = read(pc++) + y;
 	return 0;
 }
 
 uint8_t CPU6502::REL()
 {
-	addr_rel = read(pc++);
+ 	addr_rel = read(pc++);
 	if (addr_rel & 0x80)
 		addr_rel |= 0xFF00;
+
+#ifdef _DEBUG
+	std::stringstream stream;
+	stream << std::to_string((int8_t)addr_rel);
+	disassembled = stream.str();
+#endif
 
 	return 0;
 }
@@ -541,6 +729,11 @@ uint8_t CPU6502::ABS()
 	uint16_t lo = read(pc++);
 	uint16_t hi = read(pc++);
 	addr_abs = (hi << 8) | lo;
+#ifdef _DEBUG
+	std::stringstream stream;
+	stream << "$" << std::setw(4) << std::setfill('0') << std::hex << addr_abs;
+	disassembled = stream.str();
+#endif
 	return 0;
 }
 
@@ -549,6 +742,11 @@ uint8_t CPU6502::ABX()
 	uint16_t lo = read(pc++);
 	uint16_t hi = read(pc++);
 	addr_abs = ((hi << 8) | lo) + x;
+#ifdef _DEBUG
+	std::stringstream stream;
+	stream << "$" << std::setw(4) << std::setfill('0') << std::hex << addr_abs;
+	disassembled = stream.str();
+#endif
 	return 0;
 }
 
@@ -557,6 +755,11 @@ uint8_t CPU6502::ABY()
 	uint16_t lo = read(pc++);
 	uint16_t hi = read(pc++);
 	addr_abs = ((hi << 8) | lo) + y;
+#ifdef _DEBUG
+	std::stringstream stream;
+	stream << "$" << std::setw(4) << std::setfill('0') << std::hex << addr_abs;
+	disassembled = stream.str();
+#endif
 	return 0;
 }
 
@@ -565,6 +768,12 @@ uint8_t CPU6502::IND()
 	uint16_t lo = read(pc++);
 	uint16_t hi = read(pc++);
 	addr_abs = (hi << 8) | lo;
+
+#ifdef _DEBUG
+	std::stringstream stream;
+	stream << "($" << std::setw(4) << std::setfill('0')  << std::hex << addr_abs << ")";
+	disassembled = stream.str();
+#endif
 
 	lo = read(addr_abs);
 	hi = read(addr_abs + 1);
@@ -575,6 +784,11 @@ uint8_t CPU6502::IND()
 
 uint8_t CPU6502::IZX()
 {
+#ifdef _DEBUG
+	std::stringstream stream;
+	stream << "($" << std::setw(2) << std::setfill('0') << std::hex << read(pc) << ",X)";
+	disassembled = stream.str();
+#endif
 	addr_abs = read(pc++) + x;
 	addr_abs = read(addr_abs);
 
@@ -583,6 +797,11 @@ uint8_t CPU6502::IZX()
 
 uint8_t CPU6502::IZY()
 {
+#ifdef _DEBUG
+	std::stringstream stream;
+	stream << "($" << std::setw(2) << std::setfill('0') << std::hex << read(pc) << ",X)";
+	disassembled = stream.str();
+#endif
 	addr_abs = read(pc++) + y;
 	addr_abs = read(addr_abs);
 

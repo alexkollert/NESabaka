@@ -5,12 +5,14 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <QObject>
 
 
 class MainBus;
 
-class CPU6502
+class CPU6502 : public QObject
 {
+	Q_OBJECT
 public:
 
 	typedef struct Statusregister
@@ -31,6 +33,8 @@ public:
 
 	void clock();
 
+	void stepInstruction();
+
 	void nmi();
 
 	void irq();
@@ -40,6 +44,14 @@ public:
 	void loadBinary(const std::string& filename);
 
 	void connectMainbus(MainBus* bus);
+
+	std::vector<std::pair<uint16_t, std::string>> disassemble(uint16_t address);
+
+public slots:
+	void spacePressed();
+
+signals:
+	void cpuChanged(uint16_t pc, uint16_t stkp, uint8_t a, uint8_t x, uint8_t y);
 
 private:
 
@@ -112,6 +124,7 @@ private:
 	uint8_t addr_rel = 0x00;
 	uint8_t opcode = 0x00;
 	uint8_t cycles = 0;
+	std::string disassembled;
 	MainBus* bus = nullptr;
 
 };
