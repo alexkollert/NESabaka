@@ -3,7 +3,9 @@
 #include <cstdint>
 #include <array>
 #include "CPU6502.hpp"
+#include <Cartridge.hpp>
 
+#define RAM_SIZE 2048
 
 class MainBus
 {
@@ -14,7 +16,10 @@ public:
 
 	void write(uint16_t address, uint8_t data);
 
-	std::array<uint8_t, 64 * 1024> ram;
+	void insertCartridge(const std::string filename);
+
+	std::array<uint8_t, RAM_SIZE> ram;
 	CPU6502 cpu6502;
+	Cartridge cartridge;
 };
 #endif 

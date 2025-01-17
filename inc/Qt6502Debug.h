@@ -3,19 +3,23 @@
 #include <QtWidgets/QMainWindow>
 #include <QLabel>
 #include <QKeyEvent>
-#include <CPU6502.hpp>
+
 #include "ui_MainWindow.h"
+
+class MainBus;
 
 class Qt6502Debug  : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    Qt6502Debug(std::array<uint8_t, 64 * 1024>& ram, QWidget* parent = nullptr);
+    Qt6502Debug(MainBus* bus, QWidget* parent = nullptr);
     ~Qt6502Debug();
 
     void setRAM(uint16_t from, uint16_t to);
     void setPrg(std::vector<std::pair<uint16_t, std::string>>& prg);
+
+    std::vector<std::pair<uint16_t, std::string>> disassemble(uint16_t address);
 
 protected:
     void keyPressEvent(QKeyEvent* event) override;
@@ -32,5 +36,5 @@ private:
     uint16_t lastPC;
     uint16_t curRamFrom;
     uint16_t curRamTo;
-    std::array<uint8_t, 64 * 1024>& m_ram;
+    MainBus* m_bus = nullptr;
 };

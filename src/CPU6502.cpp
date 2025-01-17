@@ -85,23 +85,6 @@ void CPU6502::connectMainbus(MainBus* bus)
 	this->bus = bus;
 }
 
-std::vector<std::pair<uint16_t, std::string>> CPU6502::disassemble(uint16_t address)
-{
-	std::vector<std::pair<uint16_t, std::string>> result;
-	pc = address;
-	for (int i = 0; i < 20; i++)
-	{
-		address = pc;
-		std::string tmp;
-		uint8_t opcode = bus->ram[pc++];
-		tmp = instructions[opcode].name;
-		(this->*instructions[opcode].addrmode)();
-		tmp += " " + disassembled;
-		result.push_back(std::pair(address, tmp));
-	}
-	return result;
-}
-
 uint8_t CPU6502::read(uint16_t address)
 {
 	return bus->read(address);

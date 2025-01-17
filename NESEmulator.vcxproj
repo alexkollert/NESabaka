@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Cartridge.cpp" />
     <ClCompile Include="src\CPU6502.cpp" />
     <ClCompile Include="src\MainBus.cpp" />
     <ClCompile Include="src\NESEmulator.cpp" />
@@ -26,6 +27,7 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="inc\CPU6502.hpp" />
+    <ClInclude Include="inc\Cartridge.hpp" />
     <ClInclude Include="inc\Disassembler.hpp" />
     <ClInclude Include="inc\MainBus.hpp" />
     <ClInclude Include="inc\NESEmulator.hpp" />
